@@ -6,7 +6,7 @@
 **/*.iml
 **/.idea/
 **/.packages
-**/pubspec.lock
+# pubspec.lock tracked per project
 
 # OS
 .DS_Store
