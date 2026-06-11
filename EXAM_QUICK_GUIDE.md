@@ -266,6 +266,216 @@ class _StudentManagerState extends State<StudentManager> {
 
 ---
 
+## ⚡ PART 1B: VARIANT — SEPARATE SCREEN (Instead of Dialog)
+
+> ⚠️ **If the question says "navigate to a form screen" or "separate Add/Edit screen"** — use this instead of the dialog. Both use the same DB functions, only the UI part changes.
+
+### On the Home Screen — open form screen instead of dialog
+```dart
+// FAB for Add
+floatingActionButton: FloatingActionButton(
+  onPressed: () async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => StudentFormScreen(student: null)),
+    );
+    _refreshList(); // refresh when you come BACK
+  },
+  child: const Icon(Icons.add),
+),
+
+// Edit button inside ListTile
+IconButton(
+  icon: const Icon(Icons.edit),
+  onPressed: () async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => StudentFormScreen(student: s)),
+    );
+    _refreshList();
+  },
+),
+```
+
+### The Form Screen (Second Screen)
+```dart
+class StudentFormScreen extends StatefulWidget {
+  final Student? student; // null = Add mode, has value = Edit mode
+  const StudentFormScreen({super.key, this.student});
+  @override
+  State<StudentFormScreen> createState() => _StudentFormScreenState();
+}
+
+class _StudentFormScreenState extends State<StudentFormScreen> {
+  final formKey = GlobalKey<FormState>();
+  late TextEditingController nameController;
+  late TextEditingController ageController;
+  late TextEditingController courseController;
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-fill if editing, empty if adding
+    nameController = TextEditingController(text: widget.student?.name ?? '');
+    ageController = TextEditingController(text: widget.student?.age.toString() ?? '');
+    courseController = TextEditingController(text: widget.student?.course ?? '');
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    ageController.dispose();
+    courseController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.student == null ? 'Add Student' : 'Edit Student'),
+        backgroundColor: Colors.blue,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: formKey,
+          child: Column(
+            children: [
+              TextFormField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: 'Name'),
+                validator: (v) => (v == null || v.isEmpty) ? 'Enter name' : null,
+              ),
+              TextFormField(
+                controller: ageController,
+                decoration: const InputDecoration(labelText: 'Age'),
+                keyboardType: TextInputType.number,
+                validator: (v) {
+                  if (v == null || v.isEmpty) return 'Enter age';
+                  if (int.tryParse(v) == null) return 'Must be a number';
+                  return null;
+                },
+              ),
+              TextFormField(
+                controller: courseController,
+                decoration: const InputDecoration(labelText: 'Course'),
+                validator: (v) => (v == null || v.isEmpty) ? 'Enter course' : null,
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (formKey.currentState!.validate()) {
+                      if (widget.student == null) {
+                        await insertStudent(Student(
+                          name: nameController.text,
+                          age: int.parse(ageController.text),
+                          course: courseController.text,
+                        ));
+                      } else {
+                        await updateStudent(Student(
+                          id: widget.student!.id,
+                          name: nameController.text,
+                          age: int.parse(ageController.text),
+                          course: courseController.text,
+                        ));
+                      }
+                      Navigator.pop(context); // go back to home
+                    }
+                  },
+                  child: const Text('SAVE'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+```
+
+> 💡 **Key difference from dialog:** `widget.student` instead of `student` (because data is passed via constructor, not function parameter)
+
+---
+
+## ⭐ PART 1C: QUICK BOLT-ONS (Extra Marks — 5 min each)
+
+> Only add these AFTER basic CRUD is fully working. Don't risk breaking it.
+
+### Search by Name (add above ListView)
+```dart
+// 1. Add this variable to your State class
+List<Student> _filtered = [];
+
+// 2. In _refreshList(), also update _filtered:
+Future<void> _refreshList() async {
+  final data = await retrieveStudents();
+  setState(() {
+    _students = data;
+    _filtered = data; // reset filter on refresh
+  });
+}
+
+// 3. Add TextField above ListView (wrap body in Column first):
+TextField(
+  decoration: const InputDecoration(
+    labelText: 'Search',
+    prefixIcon: Icon(Icons.search),
+  ),
+  onChanged: (value) {
+    setState(() {
+      _filtered = _students
+          .where((s) => s.name.toLowerCase().contains(value.toLowerCase()))
+          .toList();
+    });
+  },
+),
+
+// 4. Change ListView to use _filtered instead of _students:
+itemCount: _filtered.length,
+itemBuilder: (context, index) {
+  final s = _filtered[index];
+```
+
+---
+
+### Dropdown for Course (replace course TextFormField)
+```dart
+// 1. Add variable to track selected value (inside _showForm or State class)
+String? selectedCourse;
+
+// 2. Replace course TextFormField with this:
+DropdownButtonFormField<String>(
+  value: selectedCourse,
+  decoration: const InputDecoration(labelText: 'Course'),
+  items: ['ICT', 'BST', 'ET']
+      .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+      .toList(),
+  onChanged: (value) => selectedCourse = value,
+  validator: (value) => value == null ? 'Please select course' : null,
+),
+
+// 3. When saving, use selectedCourse! instead of courseCtrl.text
+```
+
+---
+
+### Long-Press to Delete (easiest bolt-on — 1 line)
+```dart
+// Just add onLongPress to your ListTile:
+return ListTile(
+  onLongPress: () => _confirmDelete(s), // ← add this one line
+  title: Text(s.name),
+  subtitle: Text('Age: ${s.age} | Course: ${s.course}'),
+  trailing: Row( ... ),
+);
+```
+
+---
+
 ## ⚡ PART 2: MULTI-SCREEN UI APP — Practical 07 Key Concepts
 
 > If they give you a navigation/layout question instead, here are the key code pieces.
