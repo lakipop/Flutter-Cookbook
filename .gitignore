@@ -1,0 +1,19 @@
+# Flutter/Dart build artifacts
+**/build/
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/*.iml
+**/.idea/
+**/.packages
+**/pubspec.lock
+
+# OS
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
+
+# Exam guide (personal notes)
+EXAM_QUICK_GUIDE.md
