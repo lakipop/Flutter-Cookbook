@@ -6,7 +6,6 @@
 **/*.iml
 **/.idea/
 **/.packages
-# pubspec.lock tracked per project
 
 # OS
 .DS_Store
@@ -15,5 +14,6 @@ Thumbs.db
 # VS Code
 .vscode/
 
-# Exam guide (personal notes)
-EXAM_QUICK_GUIDE.md
+# Scripts
+commit_script.ps1
+commit_more.ps1
